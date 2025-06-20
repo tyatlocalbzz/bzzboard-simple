@@ -1,0 +1,113 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id           String @id @default(cuid())
+  email        String @unique
+  passwordHash String @map("password_hash")
+  name         String
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("admin_user")
+}
+
+model Client {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?
+  website     String?
+  phone       String?
+  platforms   String[] // Instagram, Facebook, LinkedIn
+  brandColors String?  @map("brand_colors") // hex codes
+  logoUrl     String?  @map("logo_url")
+  guidelines  String?  // URL to style guidelines
+  status      String   @default("active") // active, paused, inactive
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  shoots       Shoot[]
+  contentItems ContentItem[]
+  posts        Post[]
+
+  @@map("clients")
+}
+
+model Shoot {
+  id                    String    @id @default(cuid())
+  clientId              String    @map("client_id")
+  scheduledDate         DateTime  @map("scheduled_date")
+  location              String?
+  driveFolderUrl        String?   @map("drive_folder_url")
+  expectedContentCount  Int?      @map("expected_content_count")
+  status                String    @default("scheduled") // scheduled, complete
+  objectives            String?   // shoot objectives
+  equipment             String?   // equipment needed
+  notes                 String?
+  completedAt           DateTime? @map("completed_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  client       Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  contentItems ContentItem[]
+
+  @@map("shoots")
+}
+
+model ContentItem {
+  id            String   @id @default(cuid())
+  clientId      String   @map("client_id")
+  shootId       String?  @map("shoot_id")
+  filename      String
+  driveFileUrl  String   @map("drive_file_url")
+  platform      String   // instagram, facebook, linkedin
+  contentType   String   @map("content_type") // post, story, reel
+  usedInPosts   Boolean  @default(false) @map("used_in_posts")
+  uploadedAt    DateTime @default(now()) @map("uploaded_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  shoot  Shoot? @relation(fields: [shootId], references: [id], onDelete: SetNull)
+  posts  Post[]
+
+  @@map("content_items")
+}
+
+model Post {
+  id              String    @id @default(cuid())
+  clientId        String    @map("client_id")
+  contentItemId   String?   @map("content_item_id")
+  platform        String    // instagram, facebook, linkedin
+  caption         String?
+  hashtags        String?
+  scheduledTime   DateTime? @map("scheduled_time")
+  status          String    @default("draft") // draft, scheduled, published
+  publishedAt     DateTime? @map("published_at")
+  performanceNotes String?  @map("performance_notes")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  client      Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  contentItem ContentItem? @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+
+  @@map("posts")
+}
